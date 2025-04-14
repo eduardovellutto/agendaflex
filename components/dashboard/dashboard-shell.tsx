@@ -10,6 +10,15 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/lib/auth"
 import { cn } from "@/lib/utils"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 interface NavItem {
   title: string
@@ -73,6 +82,16 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
     return null
   }
 
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return "U"
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2)
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-40 border-b bg-background">
@@ -131,13 +150,28 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
             </Link>
           </div>
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex">
-              <p className="text-sm font-medium">{user?.displayName || user?.email}</p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={signOut} className="hidden md:flex">
-              <LogOut className="h-5 w-5" />
-              <span className="sr-only">Sair</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "Usuário"} />
+                    <AvatarFallback>{getInitials(user?.displayName || user?.email)}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/profile">Perfil</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard/settings">Configurações</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => signOut()}>Sair</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
@@ -163,7 +197,7 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
             </div>
           </div>
         </aside>
-        <main className="flex-1 overflow-auto p-6 md:p-8">
+        <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
           <div className="mx-auto max-w-5xl">{children}</div>
         </main>
       </div>
