@@ -1,19 +1,10 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import {
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  sendPasswordResetEmail,
-  GoogleAuthProvider,
-  signInWithPopup,
-  type User,
-} from "firebase/auth"
-import { auth } from "../firebase/firebase-config"
+import { onAuthChanged, signIn, signUp, signInWithGoogle, signOut, resetPassword } from "./firebase"
+import type { User } from "firebase/auth"
 
-// Auth Context Type
+// Tipo do contexto de autenticação
 interface AuthContextType {
   user: User | null
   loading: boolean
@@ -24,42 +15,35 @@ interface AuthContextType {
   resetPassword: (email: string) => Promise<void>
 }
 
-// Create Auth Context
+// Criar contexto
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Auth Provider Component
+// Provider
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
 
+  // Garantir que estamos no cliente
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    setMounted(true)
+  }, [])
+
+  // Configurar listener de autenticação
+  useEffect(() => {
+    if (!mounted) return
+
+    const unsubscribe = onAuthChanged((user) => {
       setUser(user)
       setLoading(false)
     })
 
     return () => unsubscribe()
-  }, [])
+  }, [mounted])
 
-  const signIn = async (email: string, password: string) => {
-    return signInWithEmailAndPassword(auth, email, password)
-  }
-
-  const signUp = async (email: string, password: string) => {
-    return createUserWithEmailAndPassword(auth, email, password)
-  }
-
-  const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider()
-    return signInWithPopup(auth, provider)
-  }
-
-  const signOut = async () => {
-    return firebaseSignOut(auth)
-  }
-
-  const resetPassword = async (email: string) => {
-    return sendPasswordResetEmail(auth, email)
+  // Não renderizar nada no servidor
+  if (!mounted) {
+    return null
   }
 
   const value = {
@@ -75,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-// Hook to use Auth Context
+// Hook para usar o contexto
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {

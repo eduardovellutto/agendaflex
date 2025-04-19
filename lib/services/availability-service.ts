@@ -1,10 +1,15 @@
+"use client"
+
 import { collection, doc, getDocs, addDoc, updateDoc, deleteDoc, query, where, orderBy } from "firebase/firestore"
-import { db } from "../firebase/firebase-config"
+import { getDb } from "../firebase"
 import type { Availability } from "../types"
 
 const AVAILABILITY_COLLECTION = "availability"
 
 export async function createAvailability(availability: Omit<Availability, "id">): Promise<Availability> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const availabilityRef = collection(db, AVAILABILITY_COLLECTION)
   const docRef = await addDoc(availabilityRef, availability)
 
@@ -15,6 +20,9 @@ export async function createAvailability(availability: Omit<Availability, "id">)
 }
 
 export async function getAvailabilityByUser(userId: string): Promise<Availability[]> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const availabilityRef = collection(db, AVAILABILITY_COLLECTION)
   const q = query(availabilityRef, where("userId", "==", userId), orderBy("dayOfWeek", "asc"))
 
@@ -25,8 +33,10 @@ export async function getAvailabilityByUser(userId: string): Promise<Availabilit
   })) as Availability[]
 }
 
-// Função que estava faltando
 export async function getAvailabilityByProfessional(professionalId: string): Promise<Availability | null> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const availabilityRef = collection(db, AVAILABILITY_COLLECTION)
   const q = query(availabilityRef, where("professionalId", "==", professionalId))
 
@@ -42,12 +52,18 @@ export async function getAvailabilityByProfessional(professionalId: string): Pro
 }
 
 export async function updateAvailability(availabilityId: string, data: Partial<Availability>): Promise<void> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const availabilityRef = doc(db, AVAILABILITY_COLLECTION, availabilityId)
   await updateDoc(availabilityRef, data)
 }
 
 // Sobrecarga para atualizar pela ID do profissional
 export async function updateAvailabilityByProfessionalId(availability: Availability): Promise<void> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const availabilityRef = collection(db, AVAILABILITY_COLLECTION)
   const q = query(availabilityRef, where("professionalId", "==", availability.professionalId))
 
@@ -64,6 +80,9 @@ export async function updateAvailabilityByProfessionalId(availability: Availabil
 }
 
 export async function deleteAvailability(availabilityId: string): Promise<void> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const availabilityRef = doc(db, AVAILABILITY_COLLECTION, availabilityId)
   await deleteDoc(availabilityRef)
 }

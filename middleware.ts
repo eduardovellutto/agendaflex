@@ -14,6 +14,14 @@ export function middleware(request: NextRequest) {
     return NextResponse.json({})
   }
 
+  // Verificar se o usuário está na página de setup de perfil
+  const isProfileSetupRoute = request.nextUrl.pathname === "/dashboard/profile/setup"
+
+  // Se o usuário estiver na página de setup, permitir o acesso
+  if (isProfileSetupRoute) {
+    return NextResponse.next()
+  }
+
   return NextResponse.next()
 }
 

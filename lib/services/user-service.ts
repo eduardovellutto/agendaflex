@@ -1,12 +1,17 @@
+"use client"
+
 import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore"
-import { db } from "../firebase/firebase-config"
+import { getDb } from "../firebase"
 import type { User } from "../types"
 
 const USERS_COLLECTION = "users"
 
-// Melhorar o tratamento de erros na função createUser
+// Função para criar um usuário
 export async function createUser(user: User): Promise<void> {
   try {
+    const db = getDb()
+    if (!db) throw new Error("Firestore não está inicializado")
+
     const userRef = doc(db, USERS_COLLECTION, user.id)
     await setDoc(userRef, {
       ...user,
@@ -19,23 +24,41 @@ export async function createUser(user: User): Promise<void> {
   }
 }
 
+// Função para obter um usuário pelo ID
 export async function getUser(userId: string): Promise<User | null> {
-  const userRef = doc(db, USERS_COLLECTION, userId)
-  const userSnap = await getDoc(userRef)
+  try {
+    const db = getDb()
+    if (!db) throw new Error("Firestore não está inicializado")
 
-  if (userSnap.exists()) {
-    return { id: userSnap.id, ...userSnap.data() } as User
+    const userRef = doc(db, USERS_COLLECTION, userId)
+    const userSnap = await getDoc(userRef)
+
+    if (userSnap.exists()) {
+      return { id: userSnap.id, ...userSnap.data() } as User
+    }
+
+    return null
+  } catch (error) {
+    console.error("Erro ao obter usuário:", error)
+    return null
   }
-
-  return null
 }
 
-// Função que estava faltando - Alias para getUser para manter compatibilidade
+// Alias para getUser para manter compatibilidade
 export async function getUserById(userId: string): Promise<User | null> {
   return getUser(userId)
 }
 
+// Função para atualizar um usuário
 export async function updateUser(userId: string, data: Partial<User>): Promise<void> {
-  const userRef = doc(db, USERS_COLLECTION, userId)
-  await updateDoc(userRef, data)
+  try {
+    const db = getDb()
+    if (!db) throw new Error("Firestore não está inicializado")
+
+    const userRef = doc(db, USERS_COLLECTION, userId)
+    await updateDoc(userRef, data)
+  } catch (error) {
+    console.error("Erro ao atualizar usuário:", error)
+    throw error
+  }
 }

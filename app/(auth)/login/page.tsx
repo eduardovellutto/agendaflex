@@ -13,8 +13,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/lib/auth"
-// Adicionar importação do createUser
-import { createUser } from "@/lib/services/user-service"
+import { createUser, getUserById } from "@/lib/services/user-service"
+import { isProfileComplete } from "@/lib/utils/profile-validation"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -35,22 +35,47 @@ export default function LoginPage() {
     },
   })
 
+  // Modificar a função checkProfileAndRedirect para garantir que o redirecionamento seja sempre para o dashboard
+  async function checkProfileAndRedirect(userId: string) {
+    try {
+      const userProfile = await getUserById(userId)
+
+      if (!isProfileComplete(userProfile)) {
+        // Se o perfil não estiver completo, redireciona para a página de configuração inicial
+        toast({
+          title: "Complete seu perfil",
+          description: "Por favor, complete seu perfil profissional para continuar.",
+        })
+        router.push("/dashboard/profile/setup")
+      } else {
+        // Se o perfil estiver completo, redireciona para o dashboard
+        toast({
+          title: "Login realizado com sucesso",
+          description: "Bem-vindo de volta!",
+        })
+        router.push("/dashboard")
+      }
+    } catch (error) {
+      console.error("Erro ao verificar perfil:", error)
+      // Em caso de erro, redireciona para o dashboard
+      router.push("/dashboard")
+    }
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     try {
-      await signIn(values.email, values.password)
-      toast({
-        title: "Login realizado com sucesso",
-        description: "Você será redirecionado para o dashboard",
-      })
-      router.push("/dashboard")
+      const result = await signIn(values.email, values.password)
+
+      if (result.user) {
+        await checkProfileAndRedirect(result.user.uid)
+      }
     } catch (error) {
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
         description: "Verifique suas credenciais e tente novamente",
       })
-    } finally {
       setIsLoading(false)
     }
   }
@@ -70,13 +95,17 @@ export default function LoginPage() {
           profession: "other", // Valor padrão
           createdAt: new Date(),
         })
-      }
 
-      toast({
-        title: "Login realizado com sucesso",
-        description: "Você será redirecionado para o dashboard",
-      })
-      router.push("/dashboard")
+        // Redirecionar para a página de configuração inicial
+        toast({
+          title: "Conta criada com sucesso",
+          description: "Por favor, complete seu perfil profissional para continuar.",
+        })
+        router.push("/dashboard/profile/setup")
+      } else if (result.user) {
+        // Verificar se o perfil está completo
+        await checkProfileAndRedirect(result.user.uid)
+      }
     } catch (error) {
       console.error("Erro no login com Google:", error)
       toast({
@@ -84,7 +113,6 @@ export default function LoginPage() {
         title: "Erro ao fazer login com Google",
         description: "Ocorreu um erro durante a autenticação. Tente novamente.",
       })
-    } finally {
       setIsLoading(false)
     }
   }

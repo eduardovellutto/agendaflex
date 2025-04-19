@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -11,30 +12,27 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/components/ui/use-toast"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/lib/auth"
 import { getUserById, updateUser } from "@/lib/services/user-service"
 
 const profileFormSchema = z.object({
   name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
-  email: z.string().email({ message: "Email inválido" }).optional(),
   profession: z.string().min(1, { message: "Selecione sua profissão" }),
-  bio: z.string().optional(),
-  phone: z.string().optional(),
+  bio: z.string().min(10, { message: "Descreva sua experiência profissional (mínimo 10 caracteres)" }),
+  phone: z.string().min(10, { message: "Informe um telefone válido" }),
   website: z.string().url({ message: "URL inválida" }).optional().or(z.literal("")),
 })
 
-export default function ProfilePage() {
+export default function ProfileSetupPage() {
   const { toast } = useToast()
+  const router = useRouter()
   const { user: authUser } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
-  const [avatarUrl, setAvatarUrl] = useState("")
 
   const form = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       name: "",
-      email: "",
       profession: "",
       bio: "",
       phone: "",
@@ -50,18 +48,12 @@ export default function ProfilePage() {
           const userData = await getUserById(authUser.uid)
           if (userData) {
             form.reset({
-              name: userData.name,
-              email: userData.email,
-              profession: userData.profession,
+              name: userData.name || authUser.displayName || "",
+              profession: userData.profession || "",
               bio: userData.bio || "",
               phone: userData.phone || "",
               website: userData.website || "",
             })
-
-            // Set avatar URL if available
-            if (authUser.photoURL) {
-              setAvatarUrl(authUser.photoURL)
-            }
           }
         } catch (error) {
           console.error("Error loading user data:", error)
@@ -88,9 +80,12 @@ export default function ProfilePage() {
       })
 
       toast({
-        title: "Perfil atualizado",
-        description: "Suas informações de perfil foram atualizadas com sucesso.",
+        title: "Perfil atualizado com sucesso",
+        description: "Agora você pode começar a receber agendamentos.",
       })
+
+      // Redirecionar para o dashboard após completar o perfil
+      router.push("/dashboard")
     } catch (error) {
       toast({
         variant: "destructive",
@@ -102,36 +97,14 @@ export default function ProfilePage() {
     }
   }
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase()
-      .substring(0, 2)
-  }
-
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold tracking-tight">Meu Perfil</h1>
-        <p className="text-muted-foreground">Gerencie suas informações pessoais e profissionais.</p>
-      </div>
-
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col items-center gap-4 sm:flex-row">
-            <Avatar className="h-20 w-20">
-              <AvatarImage src={avatarUrl || "/placeholder.svg"} alt={form.watch("name")} />
-              <AvatarFallback>{getInitials(form.watch("name") || "Usuário")}</AvatarFallback>
-            </Avatar>
-            <div>
-              <CardTitle>Informações Pessoais</CardTitle>
-              <CardDescription>
-                Atualize suas informações de perfil e como você aparece para seus clientes.
-              </CardDescription>
-            </div>
-          </div>
+    <div className="container flex min-h-screen flex-col items-center justify-center px-4 py-8">
+      <Card className="w-full max-w-2xl">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl">Configure seu perfil profissional</CardTitle>
+          <CardDescription>
+            Complete seu perfil para que os clientes possam encontrar e agendar horários com você.
+          </CardDescription>
         </CardHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -145,21 +118,7 @@ export default function ProfilePage() {
                     <FormControl>
                       <Input placeholder="Seu nome completo" {...field} />
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="seu@email.com" {...field} disabled />
-                    </FormControl>
-                    <FormDescription>Para alterar seu email, entre em contato com o suporte.</FormDescription>
+                    <FormDescription>Este é o nome que será exibido para seus clientes.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -187,6 +146,7 @@ export default function ProfilePage() {
                         <SelectItem value="other">Outro</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormDescription>Escolha a profissão que melhor descreve sua atividade.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -197,11 +157,11 @@ export default function ProfilePage() {
                 name="bio"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Biografia</FormLabel>
+                    <FormLabel>Biografia profissional</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Conte um pouco sobre você e sua experiência profissional..."
-                        className="resize-none"
+                        placeholder="Descreva sua experiência, especialidades e abordagem profissional..."
+                        className="min-h-[120px] resize-none"
                         {...field}
                       />
                     </FormControl>
@@ -213,39 +173,41 @@ export default function ProfilePage() {
                 )}
               />
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Telefone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(00) 00000-0000" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Telefone de contato</FormLabel>
+                    <FormControl>
+                      <Input placeholder="(00) 00000-0000" {...field} />
+                    </FormControl>
+                    <FormDescription>Número para contato com clientes e notificações.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="website"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Website</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://seusite.com" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website ou Rede Social</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://seusite.com" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Opcional: Adicione seu site ou perfil profissional em redes sociais.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
             <CardFooter>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Salvando..." : "Salvar alterações"}
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Salvando..." : "Salvar e continuar"}
               </Button>
             </CardFooter>
           </form>

@@ -1,3 +1,5 @@
+"use client"
+
 import {
   collection,
   doc,
@@ -10,12 +12,15 @@ import {
   where,
   orderBy,
 } from "firebase/firestore"
-import { db } from "../firebase/firebase-config"
+import { getDb } from "../firebase"
 import type { Service } from "../types"
 
 const SERVICES_COLLECTION = "services"
 
 export async function createService(service: Omit<Service, "id">): Promise<Service> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const servicesRef = collection(db, SERVICES_COLLECTION)
   const docRef = await addDoc(servicesRef, service)
 
@@ -26,6 +31,9 @@ export async function createService(service: Omit<Service, "id">): Promise<Servi
 }
 
 export async function getService(serviceId: string): Promise<Service | null> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const serviceRef = doc(db, SERVICES_COLLECTION, serviceId)
   const serviceSnap = await getDoc(serviceRef)
 
@@ -37,6 +45,9 @@ export async function getService(serviceId: string): Promise<Service | null> {
 }
 
 export async function getServicesByUser(userId: string): Promise<Service[]> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const servicesRef = collection(db, SERVICES_COLLECTION)
   const q = query(servicesRef, where("userId", "==", userId), orderBy("name", "asc"))
 
@@ -47,8 +58,10 @@ export async function getServicesByUser(userId: string): Promise<Service[]> {
   })) as Service[]
 }
 
-// Função que estava faltando
 export async function getServicesByProfessional(professionalId: string): Promise<Service[]> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const servicesRef = collection(db, SERVICES_COLLECTION)
   const q = query(servicesRef, where("professionalId", "==", professionalId), orderBy("name", "asc"))
 
@@ -60,11 +73,17 @@ export async function getServicesByProfessional(professionalId: string): Promise
 }
 
 export async function updateService(serviceId: string, data: Partial<Service>): Promise<void> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const serviceRef = doc(db, SERVICES_COLLECTION, serviceId)
   await updateDoc(serviceRef, data)
 }
 
 export async function deleteService(serviceId: string): Promise<void> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const serviceRef = doc(db, SERVICES_COLLECTION, serviceId)
   await deleteDoc(serviceRef)
 }

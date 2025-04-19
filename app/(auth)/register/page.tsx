@@ -65,9 +65,11 @@ export default function RegisterPage() {
 
           toast({
             title: "Conta criada com sucesso",
-            description: "Você será redirecionado para o dashboard",
+            description: "Complete seu perfil profissional para começar a receber agendamentos.",
           })
-          router.push("/dashboard")
+
+          // Redirecionar para a página de configuração inicial do perfil
+          router.push("/dashboard/profile/setup")
         } catch (firestoreError) {
           console.error("Erro ao criar perfil no Firestore:", firestoreError)
           toast({
@@ -116,13 +118,18 @@ export default function RegisterPage() {
           profession: "other", // Valor padrão
           createdAt: new Date(),
         })
-      }
 
-      toast({
-        title: "Conta criada com sucesso",
-        description: "Você será redirecionado para o dashboard",
-      })
-      router.push("/dashboard")
+        toast({
+          title: "Conta criada com sucesso",
+          description: "Complete seu perfil profissional para começar a receber agendamentos.",
+        })
+
+        // Redirecionar para a página de configuração inicial do perfil
+        router.push("/dashboard/profile/setup")
+      } else {
+        // Se não for um novo usuário, redirecionar para o dashboard
+        router.push("/dashboard")
+      }
     } catch (error) {
       console.error("Erro no registro com Google:", error)
       toast({
@@ -130,7 +137,6 @@ export default function RegisterPage() {
         title: "Erro ao criar conta com Google",
         description: "Ocorreu um erro durante a autenticação. Tente novamente.",
       })
-    } finally {
       setIsLoading(false)
     }
   }

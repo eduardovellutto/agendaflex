@@ -1,3 +1,5 @@
+"use client"
+
 import {
   collection,
   doc,
@@ -12,7 +14,7 @@ import {
   Timestamp,
   limit,
 } from "firebase/firestore"
-import { db } from "../firebase/firebase-config"
+import { getDb } from "../firebase"
 import type { Appointment, AppointmentWithClient, Client, Service } from "../types"
 import { getClient } from "./client-service"
 import { getService } from "./service-service"
@@ -20,6 +22,9 @@ import { getService } from "./service-service"
 const APPOINTMENTS_COLLECTION = "appointments"
 
 export async function createAppointment(appointment: Omit<Appointment, "id">): Promise<Appointment> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const appointmentsRef = collection(db, APPOINTMENTS_COLLECTION)
   const docRef = await addDoc(appointmentsRef, {
     ...appointment,
@@ -33,6 +38,9 @@ export async function createAppointment(appointment: Omit<Appointment, "id">): P
 }
 
 export async function getAppointment(appointmentId: string): Promise<Appointment | null> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const appointmentRef = doc(db, APPOINTMENTS_COLLECTION, appointmentId)
   const appointmentSnap = await getDoc(appointmentRef)
 
@@ -61,6 +69,9 @@ export async function getAppointmentWithDetails(appointmentId: string): Promise<
 }
 
 export async function getAppointmentsByUser(userId: string): Promise<Appointment[]> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const appointmentsRef = collection(db, APPOINTMENTS_COLLECTION)
   const q = query(appointmentsRef, where("userId", "==", userId), orderBy("date", "asc"))
 
@@ -71,8 +82,10 @@ export async function getAppointmentsByUser(userId: string): Promise<Appointment
   })) as Appointment[]
 }
 
-// Função que estava faltando
 export async function getAppointmentsByProfessional(professionalId: string): Promise<Appointment[]> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const appointmentsRef = collection(db, APPOINTMENTS_COLLECTION)
   const q = query(appointmentsRef, where("professionalId", "==", professionalId), orderBy("date", "asc"))
 
@@ -84,6 +97,9 @@ export async function getAppointmentsByProfessional(professionalId: string): Pro
 }
 
 export async function getAppointmentsByDate(userId: string, date: Date): Promise<AppointmentWithClient[]> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const startOfDay = new Date(date)
   startOfDay.setHours(0, 0, 0, 0)
 
@@ -123,6 +139,9 @@ export async function getAppointmentsByDate(userId: string, date: Date): Promise
 }
 
 export async function getUpcomingAppointments(userId: string, count = 5): Promise<AppointmentWithClient[]> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const now = new Date()
 
   const appointmentsRef = collection(db, APPOINTMENTS_COLLECTION)
@@ -161,6 +180,9 @@ export async function getUpcomingAppointments(userId: string, count = 5): Promis
 export async function getAppointmentStats(
   userId: string,
 ): Promise<{ total: number; completed: number; upcoming: number }> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const now = new Date()
 
   // Get total appointments
@@ -191,6 +213,9 @@ export async function getAppointmentStats(
 }
 
 export async function updateAppointment(appointmentId: string, data: Partial<Appointment>): Promise<void> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const appointmentRef = doc(db, APPOINTMENTS_COLLECTION, appointmentId)
 
   // Convert Date to Timestamp if present
@@ -202,6 +227,9 @@ export async function updateAppointment(appointmentId: string, data: Partial<App
 }
 
 export async function deleteAppointment(appointmentId: string): Promise<void> {
+  const db = getDb()
+  if (!db) throw new Error("Firestore não está inicializado")
+
   const appointmentRef = doc(db, APPOINTMENTS_COLLECTION, appointmentId)
   await deleteDoc(appointmentRef)
 }
