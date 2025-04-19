@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { useAuth } from "@/lib/auth"
 
 export default function DashboardLayout({
@@ -35,5 +34,6 @@ export default function DashboardLayout({
     return null
   }
 
-  return <DashboardShell>{children}</DashboardShell>
+  // Não envolvemos com DashboardShell aqui, apenas retornamos os filhos
+  return <>{children}</>
 }

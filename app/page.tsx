@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <div className="flex min-h-screen flex-col">
       <header className="border-b">
-        <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <div className="flex items-center gap-2">
             <CalendarClock className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">AgendaFlex</span>
@@ -22,7 +22,7 @@ export default function Home() {
         </div>
       </header>
       <main className="flex-1">
-        <section className="container py-12 md:py-24 px-4 md:px-6">
+        <section className="container mx-auto py-12 md:py-24 px-4 md:px-6">
           <div className="grid gap-6 lg:grid-cols-2 lg:gap-12">
             <div className="flex flex-col justify-center space-y-4">
               <div className="space-y-2">
@@ -82,7 +82,7 @@ export default function Home() {
             </div>
           </div>
         </section>
-        <section id="features" className="container py-12 md:py-24 px-4 md:px-6">
+        <section id="features" className="container mx-auto py-12 md:py-24 px-4 md:px-6">
           <div className="mx-auto flex max-w-[58rem] flex-col items-center justify-center gap-4 text-center">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">Recursos</h2>
             <p className="max-w-[85%] text-gray-500 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
@@ -115,7 +115,7 @@ export default function Home() {
         </section>
       </main>
       <footer className="border-t py-6 md:py-8">
-        <div className="container flex flex-col items-center justify-between gap-4 md:flex-row px-4 md:px-6">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-4 md:flex-row px-4 md:px-6">
           <div className="flex items-center gap-2">
             <CalendarClock className="h-5 w-5 text-primary" />
             <span className="text-lg font-semibold">AgendaFlex</span>
