@@ -39,6 +39,7 @@ export default function LoginPage() {
   async function checkProfileAndRedirect(userId: string) {
     try {
       const userProfile = await getUserById(userId)
+      console.log("Perfil do usuário:", userProfile)
 
       if (!isProfileComplete(userProfile)) {
         // Se o perfil não estiver completo, redireciona para a página de configuração inicial
@@ -65,12 +66,16 @@ export default function LoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     try {
+      console.log("Tentando fazer login com:", values.email)
       const result = await signIn(values.email, values.password)
+      console.log("Resultado do login:", result)
 
       if (result.user) {
+        console.log("Usuário autenticado:", result.user.uid)
         await checkProfileAndRedirect(result.user.uid)
       }
     } catch (error) {
+      console.error("Erro detalhado ao fazer login:", error)
       toast({
         variant: "destructive",
         title: "Erro ao fazer login",
@@ -84,6 +89,7 @@ export default function LoginPage() {
     setIsLoading(true)
     try {
       const result = await signInWithGoogle()
+      console.log("Resultado do login com Google:", result)
 
       // Verificar se é um novo usuário
       if (result.user && result._tokenResponse?.isNewUser) {

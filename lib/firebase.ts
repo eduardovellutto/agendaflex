@@ -1,4 +1,4 @@
-"use client"
+"\"use client"
 
 import { initializeApp, getApps, type FirebaseApp } from "firebase/app"
 import {
@@ -25,136 +25,116 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-// Variáveis para armazenar as instâncias
-let firebaseApp: FirebaseApp | undefined = undefined
-let firebaseAuth: Auth | undefined = undefined
-let firebaseDb: Firestore | undefined = undefined
-let firebaseGoogleProvider: GoogleAuthProvider | undefined = undefined
-
 // Inicializar Firebase App
-function getFirebaseApp() {
-  if (typeof window === "undefined") {
-    return undefined
-  }
+let app: FirebaseApp | undefined
+let auth: Auth | undefined
+let db: Firestore | undefined
+let googleProvider: GoogleAuthProvider | undefined
 
-  if (!firebaseApp) {
+// Função para inicializar o Firebase
+function initializeFirebase() {
+  if (typeof window !== "undefined") {
     try {
-      if (getApps().length === 0) {
-        firebaseApp = initializeApp(firebaseConfig)
-      } else {
-        firebaseApp = getApps()[0]
+      if (!app) {
+        if (getApps().length === 0) {
+          app = initializeApp(firebaseConfig)
+        } else {
+          app = getApps()[0]
+        }
+
+        // Inicializar serviços
+        auth = getAuth(app)
+        db = getFirestore(app)
+        googleProvider = new GoogleAuthProvider()
+
+        console.log("Firebase inicializado com sucesso")
       }
     } catch (error) {
-      console.error("Erro ao inicializar Firebase App:", error)
+      console.error("Erro ao inicializar Firebase:", error)
     }
   }
-
-  return firebaseApp
 }
 
-// Inicializar Auth
-function getFirebaseAuth() {
-  if (typeof window === "undefined") {
-    return undefined
-  }
-
-  if (!firebaseAuth) {
-    const app = getFirebaseApp()
-    if (app) {
-      try {
-        firebaseAuth = getAuth(app)
-      } catch (error) {
-        console.error("Erro ao inicializar Firebase Auth:", error)
-      }
-    }
-  }
-
-  return firebaseAuth
-}
-
-// Inicializar Firestore
-function getFirebaseDb() {
-  if (typeof window === "undefined") {
-    return undefined
-  }
-
-  if (!firebaseDb) {
-    const app = getFirebaseApp()
-    if (app) {
-      try {
-        firebaseDb = getFirestore(app)
-      } catch (error) {
-        console.error("Erro ao inicializar Firebase Firestore:", error)
-      }
-    }
-  }
-
-  return firebaseDb
-}
-
-// Inicializar Google Provider
-function getGoogleProvider() {
-  if (typeof window === "undefined") {
-    return undefined
-  }
-
-  if (!firebaseGoogleProvider) {
-    try {
-      firebaseGoogleProvider = new GoogleAuthProvider()
-    } catch (error) {
-      console.error("Erro ao inicializar Google Provider:", error)
-    }
-  }
-
-  return firebaseGoogleProvider
+// Inicializar Firebase imediatamente no lado do cliente
+if (typeof window !== "undefined") {
+  initializeFirebase()
 }
 
 // Funções de autenticação com verificações de segurança
 export async function signIn(email: string, password: string) {
-  const authInstance = getFirebaseAuth()
-  if (!authInstance) throw new Error("Auth não está inicializado")
-  return signInWithEmailAndPassword(authInstance, email, password)
+  if (!auth) {
+    initializeFirebase()
+    if (!auth) throw new Error("Auth não está inicializado")
+  }
+
+  try {
+    console.log("Tentando fazer login com:", email)
+    const result = await signInWithEmailAndPassword(auth, email, password)
+    console.log("Login bem-sucedido:", result.user.uid)
+    return result
+  } catch (error) {
+    console.error("Erro no login:", error)
+    throw error
+  }
 }
 
 export async function signUp(email: string, password: string) {
-  const authInstance = getFirebaseAuth()
-  if (!authInstance) throw new Error("Auth não está inicializado")
-  return createUserWithEmailAndPassword(authInstance, email, password)
+  if (!auth) {
+    initializeFirebase()
+    if (!auth) throw new Error("Auth não está inicializado")
+  }
+
+  return createUserWithEmailAndPassword(auth, email, password)
 }
 
 export async function signInWithGoogle() {
-  const authInstance = getFirebaseAuth()
-  const provider = getGoogleProvider()
-  if (!authInstance || !provider) throw new Error("Auth ou GoogleProvider não está inicializado")
-  return signInWithPopup(authInstance, provider)
+  if (!auth || !googleProvider) {
+    initializeFirebase()
+    if (!auth || !googleProvider) throw new Error("Auth ou GoogleProvider não está inicializado")
+  }
+
+  return signInWithPopup(auth, googleProvider)
 }
 
 export async function signOut() {
-  const authInstance = getFirebaseAuth()
-  if (!authInstance) throw new Error("Auth não está inicializado")
-  return firebaseSignOut(authInstance)
+  if (!auth) {
+    initializeFirebase()
+    if (!auth) throw new Error("Auth não está inicializado")
+  }
+
+  return firebaseSignOut(auth)
 }
 
 export async function resetPassword(email: string) {
-  const authInstance = getFirebaseAuth()
-  if (!authInstance) throw new Error("Auth não está inicializado")
-  return sendPasswordResetEmail(authInstance, email)
+  if (!auth) {
+    initializeFirebase()
+    if (!auth) throw new Error("Auth não está inicializado")
+  }
+
+  return sendPasswordResetEmail(auth, email)
 }
 
 // Função para observar mudanças no estado de autenticação
 export function onAuthChanged(callback: (user: User | null) => void) {
-  const authInstance = getFirebaseAuth()
-  if (!authInstance) {
-    console.error("Auth não está inicializado")
-    callback(null)
-    return () => {}
+  if (!auth) {
+    initializeFirebase()
+    if (!auth) {
+      console.error("Auth não está inicializado")
+      callback(null)
+      return () => {}
+    }
   }
 
-  return onAuthStateChanged(authInstance, callback)
+  return onAuthStateChanged(auth, callback)
 }
 
-// Exportar getters para as instâncias
-export const getApp = getFirebaseApp
-export const auth = getFirebaseAuth
-export const getDb = getFirebaseDb
-export const getGoogleAuthProvider = getGoogleProvider
+// Exportar instâncias
+export { app, auth, db, googleProvider }
+
+export function getDb() {
+  if (!db) {
+    initializeFirebase()
+    return db
+  }
+  return db
+}

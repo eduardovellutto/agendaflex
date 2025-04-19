@@ -33,12 +33,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!mounted) return
 
+    console.log("Configurando listener de autenticação")
     const unsubscribe = onAuthChanged((user) => {
+      console.log("Estado de autenticação alterado:", user ? `Usuário: ${user.uid}` : "Nenhum usuário")
       setUser(user)
       setLoading(false)
     })
 
-    return () => unsubscribe()
+    return () => {
+      console.log("Removendo listener de autenticação")
+      unsubscribe()
+    }
   }, [mounted])
 
   // Não renderizar nada no servidor

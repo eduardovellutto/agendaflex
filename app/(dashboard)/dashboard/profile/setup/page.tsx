@@ -45,7 +45,10 @@ export default function ProfileSetupPage() {
       if (authUser?.uid) {
         setIsLoading(true)
         try {
+          console.log("Carregando dados do usuário:", authUser.uid)
           const userData = await getUserById(authUser.uid)
+          console.log("Dados do usuário carregados:", userData)
+
           if (userData) {
             form.reset({
               name: userData.name || authUser.displayName || "",
@@ -56,7 +59,7 @@ export default function ProfileSetupPage() {
             })
           }
         } catch (error) {
-          console.error("Error loading user data:", error)
+          console.error("Erro ao carregar dados do usuário:", error)
         } finally {
           setIsLoading(false)
         }
@@ -71,6 +74,7 @@ export default function ProfileSetupPage() {
 
     setIsLoading(true)
     try {
+      console.log("Atualizando perfil do usuário:", values)
       await updateUser(authUser.uid, {
         name: values.name,
         profession: values.profession,
@@ -87,6 +91,7 @@ export default function ProfileSetupPage() {
       // Redirecionar para o dashboard após completar o perfil
       router.push("/dashboard")
     } catch (error) {
+      console.error("Erro ao atualizar perfil:", error)
       toast({
         variant: "destructive",
         title: "Erro ao atualizar perfil",

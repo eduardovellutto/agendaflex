@@ -49,8 +49,10 @@ export default function RegisterPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     try {
+      console.log("Tentando criar usuário com:", values.email)
       // Create user in Firebase Auth
       const userCredential = await signUp(values.email, values.password)
+      console.log("Usuário criado:", userCredential.user.uid)
 
       // Create user profile in Firestore
       if (userCredential.user) {
@@ -107,6 +109,7 @@ export default function RegisterPage() {
     setIsLoading(true)
     try {
       const result = await signInWithGoogle()
+      console.log("Resultado do login com Google:", result)
 
       // Verificar se é um novo usuário
       if (result.user && result._tokenResponse?.isNewUser) {
