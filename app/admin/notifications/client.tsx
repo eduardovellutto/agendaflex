@@ -1,21 +1,25 @@
 "use client"
 
-import dynamic from "next/dynamic"
+import { useState, useEffect } from "react"
+import { NotificationsContent } from "@/components/admin/notifications-content"
 import { LoadingSpinner } from "@/components/loading-spinner"
 
-// Carregue o componente cliente dinamicamente com SSR desativado
-const NotificationsContent = dynamic(
-  () => import("@/components/admin/notifications-content").then((mod) => mod.NotificationsContent),
-  {
-    ssr: false,
-    loading: () => (
+export default function NotificationsClient() {
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Garantir que estamos no cliente
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Não renderizar nada durante o SSR
+  if (!isMounted) {
+    return (
       <div className="flex h-[50vh] w-full items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
-    ),
-  },
-)
+    )
+  }
 
-export default function NotificationsClient() {
   return <NotificationsContent />
 }

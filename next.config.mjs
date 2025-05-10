@@ -1,12 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Removemos a configuração output: 'export' que estava causando o erro
-  // e voltamos para a configuração anterior que desativa a pré-renderização estática
   experimental: {
-    // Desativar a pré-renderização estática para as páginas do dashboard e admin
-    // Isso evita erros de hooks sendo chamados fora do contexto do cliente
+    // Desativa a pré-renderização estática
     unstable_noStore: true,
+  },
+  // Configuração para desativar a pré-renderização estática para rotas específicas
+  async headers() {
+    return [
+      {
+        source: '/admin/:path*',
+        headers: [
+          {
+            key: 'x-no-static-prerender',
+            value: '1',
+          },
+        ],
+      },
+    ]
   },
   eslint: {
     ignoreDuringBuilds: true,

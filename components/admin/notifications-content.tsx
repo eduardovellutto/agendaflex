@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
 
+// Removemos qualquer dependência do hook useAuth
 export function NotificationsContent() {
   const [notificationType, setNotificationType] = useState<"all" | "trial" | "expiring" | "custom">("all")
   const [notificationTitle, setNotificationTitle] = useState("")

@@ -1,21 +1,32 @@
 "use client"
 
-import dynamic from "next/dynamic"
+import type React from "react"
+
+import { useState, useEffect } from "react"
+import { AdminAuthGuard } from "@/components/admin/admin-auth-guard"
+import { AdminShell } from "@/components/admin/admin-shell"
 import { LoadingSpinner } from "@/components/loading-spinner"
 
-// Carregue o componente cliente dinamicamente com SSR desativado
-const DashboardContent = dynamic(
-  () => import("@/components/admin/dashboard-content").then((mod) => mod.DashboardContent),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-[50vh] w-full items-center justify-center">
+export default function AdminClient({ children }: { children: React.ReactNode }) {
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Garantir que estamos no cliente
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Não renderizar nada durante o SSR
+  if (!isMounted) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
-    ),
-  },
-)
+    )
+  }
 
-export default function DashboardClient() {
-  return <DashboardContent />
+  return (
+    <AdminAuthGuard>
+      <AdminShell>{children}</AdminShell>
+    </AdminAuthGuard>
+  )
 }
