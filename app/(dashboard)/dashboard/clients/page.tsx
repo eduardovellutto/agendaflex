@@ -11,6 +11,8 @@ import { DashboardHeader } from "@/components/dashboard/dashboard-header"
 import { useAuth } from "@/lib/auth"
 import { getClientsByProfessional } from "@/lib/services/client-service"
 import type { Client } from "@/lib/types/client"
+import { useSubscription } from "@/hooks/use-subscription"
+import { useRouter } from "next/navigation"
 
 export default function ClientsPage() {
   const { user } = useAuth()
@@ -18,6 +20,10 @@ export default function ClientsPage() {
   const [filteredClients, setFilteredClients] = useState<Client[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [isLoading, setIsLoading] = useState(true)
+  const { checkLimits } = useSubscription()
+  const [isAtLimit, setIsAtLimit] = useState(false)
+  const [clientLimit, setClientLimit] = useState(0)
+  const router = useRouter()
 
   useEffect(() => {
     async function loadClients() {
@@ -27,6 +33,11 @@ export default function ClientsPage() {
           const clientsData = await getClientsByProfessional(user.uid)
           setClients(clientsData)
           setFilteredClients(clientsData)
+
+          // Verificar limites
+          const { withinLimits, limit } = await checkLimits("clients", clientsData.length)
+          setIsAtLimit(!withinLimits)
+          setClientLimit(limit)
         } catch (error) {
           console.error("Error loading clients:", error)
         } finally {
@@ -36,7 +47,7 @@ export default function ClientsPage() {
     }
 
     loadClients()
-  }, [user])
+  }, [user, checkLimits])
 
   useEffect(() => {
     if (searchQuery.trim() === "") {
@@ -56,12 +67,18 @@ export default function ClientsPage() {
   return (
     <div className="flex flex-col gap-8">
       <DashboardHeader heading="Clientes" text="Gerencie seus clientes e veja o histórico de atendimentos.">
-        <Link href="/dashboard/clients/new">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Cliente
+        {isAtLimit ? (
+          <Button variant="outline" onClick={() => router.push("/dashboard/subscription/upgrade")}>
+            Limite atingido ({clientLimit}) - Fazer upgrade
           </Button>
-        </Link>
+        ) : (
+          <Link href="/dashboard/clients/new">
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Cliente
+            </Button>
+          </Link>
+        )}
       </DashboardHeader>
 
       <Card>

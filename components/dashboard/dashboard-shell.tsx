@@ -4,7 +4,18 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
-import { CalendarClock, CalendarDays, Clock, CreditCard, Home, LogOut, Menu, Settings, Users } from "lucide-react"
+import {
+  CalendarClock,
+  CalendarDays,
+  Clock,
+  CreditCard,
+  Home,
+  LogOut,
+  Menu,
+  Settings,
+  Users,
+  LogInIcon as Subscription,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useAuth } from "@/lib/auth"
@@ -19,6 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { LoadingModal } from "@/components/ui/loading-modal"
+import { SubscriptionBanner } from "@/components/subscription/subscription-banner"
 
 interface NavItem {
   title: string
@@ -56,6 +68,11 @@ const navItems: NavItem[] = [
     title: "Pagamentos",
     href: "/dashboard/payments",
     icon: CreditCard,
+  },
+  {
+    title: "Assinatura",
+    href: "/dashboard/subscription/plans",
+    icon: Subscription,
   },
   {
     title: "Configurações",
@@ -216,7 +233,10 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
           </div>
         </aside>
         <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8">
-          <div className="mx-auto max-w-5xl">{children}</div>
+          <div className="mx-auto max-w-5xl">
+            <SubscriptionBanner />
+            {children}
+          </div>
         </main>
       </div>
     </div>

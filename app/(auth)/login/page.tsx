@@ -15,6 +15,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/lib/auth"
 import { createUser, getUserById } from "@/lib/services/user-service"
 import { isProfileComplete } from "@/lib/utils/profile-validation"
+import { createUserSubscription } from "@/lib/services/subscription-service"
 
 const formSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -101,6 +102,9 @@ export default function LoginPage() {
           profession: "other", // Valor padrão
           createdAt: new Date(),
         })
+
+        // Criar assinatura trial
+        await createUserSubscription(result.user.uid, "trial", "trial")
 
         // Redirecionar para a página de configuração inicial
         toast({

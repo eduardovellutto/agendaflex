@@ -9,6 +9,9 @@ import { AppointmentList } from "@/components/appointments/appointment-list"
 import { useAuth } from "@/lib/auth"
 import { getAppointmentsByDate, getAppointmentStats, getUpcomingAppointments } from "@/lib/services/appointment-service"
 import type { AppointmentWithClient } from "@/lib/types"
+import { UsageProgress } from "@/components/subscription/usage-progress"
+import { getClientsByProfessional } from "@/lib/services/client-service"
+import { getServicesByProfessional } from "@/lib/services/service-service"
 
 export default function DashboardPage() {
   const { user } = useAuth()
@@ -20,6 +23,8 @@ export default function DashboardPage() {
     upcoming: 0,
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [clientCount, setClientCount] = useState(0)
+  const [serviceCount, setServiceCount] = useState(0)
 
   useEffect(() => {
     const loadData = async () => {
@@ -38,6 +43,13 @@ export default function DashboardPage() {
           // Get stats
           const statsData = await getAppointmentStats(user.uid)
           setStats(statsData)
+
+          // Get client and service counts
+          const clients = await getClientsByProfessional(user.uid)
+          setClientCount(clients.length)
+
+          const services = await getServicesByProfessional(user.uid)
+          setServiceCount(services.length)
         } catch (error) {
           console.error("Error loading dashboard data:", error)
         } finally {
@@ -107,6 +119,27 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <div className="mt-8 grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Uso de Clientes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UsageProgress resourceType="clients" currentCount={clientCount} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium">Uso de Serviços</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UsageProgress resourceType="services" currentCount={serviceCount} />
+          </CardContent>
+        </Card>
+      </div>
+
       <Tabs defaultValue="today" className="space-y-4">
         <TabsList>
           <TabsTrigger value="today">Hoje</TabsTrigger>

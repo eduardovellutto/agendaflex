@@ -14,12 +14,25 @@ import {
 } from "firebase/firestore"
 import { getDb } from "../firebase"
 import type { Client } from "../types"
+import { checkSubscriptionLimits } from "./subscription-service"
 
 const CLIENTS_COLLECTION = "clients"
 
 export async function createClient(client: Omit<Client, "id">): Promise<Client> {
   const db = getDb()
   if (!db) throw new Error("Firestore não está inicializado")
+
+  // Verificar limites da assinatura
+  const { withinLimits, limit } = await checkSubscriptionLimits(
+    client.professionalId,
+    "clients",
+    // Obter contagem atual de clientes
+    (await getClientsByProfessional(client.professionalId)).length,
+  )
+
+  if (!withinLimits) {
+    throw new Error(`Limite de clientes atingido (${limit}). Faça upgrade do seu plano para adicionar mais clientes.`)
+  }
 
   const clientsRef = collection(db, CLIENTS_COLLECTION)
   const docRef = await addDoc(clientsRef, {

@@ -33,6 +33,11 @@ const navItems = [
     icon: CreditCard,
   },
   {
+    title: "Assinatura",
+    href: "/dashboard/subscription/plans",
+    icon: CreditCard,
+  },
+  {
     title: "Configurações",
     href: "/dashboard/settings",
     icon: Settings,

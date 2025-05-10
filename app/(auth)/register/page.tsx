@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast"
 import { useAuth } from "@/lib/auth"
 import { createUser } from "@/lib/services/user-service"
+import { createUserSubscription } from "@/lib/services/subscription-service"
 
 const formSchema = z
   .object({
@@ -64,6 +65,9 @@ export default function RegisterPage() {
             profession: values.profession,
             createdAt: new Date(),
           })
+
+          // Criar assinatura trial
+          await createUserSubscription(userCredential.user.uid, "trial", "trial")
 
           toast({
             title: "Conta criada com sucesso",
