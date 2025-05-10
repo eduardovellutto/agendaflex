@@ -1,366 +1,223 @@
 "use client"
 
-import type React from "react"
-
-import { useEffect, useState } from "react"
-import { Edit, MoreHorizontal, Plus } from "lucide-react"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { LoadingSpinner } from "@/components/loading-spinner"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { MoreHorizontal, Plus, Check } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { LoadingSpinner } from "@/components/loading-spinner"
-import { getSubscriptionPlans, updateSubscriptionPlan, createSubscriptionPlan } from "@/lib/services/admin-service"
-import type { SubscriptionPlan } from "@/lib/types/subscription"
-import { useToast } from "@/components/ui/use-toast"
+
+// Dados de exemplo
+const plans = [
+  {
+    id: "plan_1",
+    name: "Free",
+    description: "Plano gratuito com recursos básicos",
+    price: "R$ 0,00",
+    interval: "mensal",
+    active: true,
+    features: [
+      { name: "Até 5 clientes", included: true },
+      { name: "Até 3 serviços", included: true },
+      { name: "Calendário básico", included: true },
+      { name: "Notificações por email", included: false },
+      { name: "Relatórios avançados", included: false },
+    ],
+  },
+  {
+    id: "plan_2",
+    name: "Basic",
+    description: "Plano básico para profissionais iniciantes",
+    price: "R$ 49,90",
+    interval: "mensal",
+    active: true,
+    features: [
+      { name: "Até 50 clientes", included: true },
+      { name: "Até 10 serviços", included: true },
+      { name: "Calendário completo", included: true },
+      { name: "Notificações por email", included: true },
+      { name: "Relatórios avançados", included: false },
+    ],
+  },
+  {
+    id: "plan_3",
+    name: "Pro",
+    description: "Plano profissional com todos os recursos",
+    price: "R$ 99,90",
+    interval: "mensal",
+    active: true,
+    features: [
+      { name: "Clientes ilimitados", included: true },
+      { name: "Serviços ilimitados", included: true },
+      { name: "Calendário completo", included: true },
+      { name: "Notificações por email e SMS", included: true },
+      { name: "Relatórios avançados", included: true },
+    ],
+  },
+]
 
 export default function AdminPlansPage() {
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null)
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    price: 0,
-    features: "",
-    clientsLimit: 0,
-    servicesLimit: 0,
-    appointmentsLimit: 0,
-  })
-  const { toast } = useToast()
+  const [isMounted, setIsMounted] = useState(false)
+  const [activePlans, setActivePlans] = useState(plans)
 
+  // Garantir que estamos no cliente
   useEffect(() => {
-    async function loadPlans() {
-      try {
-        const plansData = await getSubscriptionPlans()
-        setPlans(plansData)
-      } catch (error) {
-        console.error("Erro ao carregar planos:", error)
-        toast({
-          variant: "destructive",
-          title: "Erro ao carregar planos",
-          description: "Não foi possível carregar a lista de planos.",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
+    setIsMounted(true)
+  }, [])
 
-    loadPlans()
-  }, [toast])
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]:
-        name === "price" || name === "clientsLimit" || name === "servicesLimit" || name === "appointmentsLimit"
-          ? Number.parseFloat(value) || 0
-          : value,
-    }))
+  // Não renderizar nada durante o SSR para evitar problemas de hidratação
+  if (!isMounted) {
+    return (
+      <div className="flex h-[50vh] w-full items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
   }
 
-  const handleEditPlan = (plan: SubscriptionPlan) => {
-    setEditingPlan(plan)
-    setFormData({
-      name: plan.name,
-      description: plan.description,
-      price: plan.price,
-      features: plan.features.join("\n"),
-      clientsLimit: plan.limits.clients,
-      servicesLimit: plan.limits.services,
-      appointmentsLimit: plan.limits.appointments,
-    })
-    setIsDialogOpen(true)
-  }
-
-  const handleAddNewPlan = () => {
-    setEditingPlan(null)
-    setFormData({
-      name: "",
-      description: "",
-      price: 0,
-      features: "",
-      clientsLimit: 0,
-      servicesLimit: 0,
-      appointmentsLimit: 0,
-    })
-    setIsDialogOpen(true)
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    try {
-      const planData = {
-        name: formData.name,
-        description: formData.description,
-        price: formData.price,
-        features: formData.features.split("\n").filter((f) => f.trim() !== ""),
-        limits: {
-          clients: formData.clientsLimit,
-          services: formData.servicesLimit,
-          appointments: formData.appointmentsLimit,
-        },
-      }
-
-      if (editingPlan) {
-        await updateSubscriptionPlan(editingPlan.id, planData)
-
-        // Atualizar a lista de planos
-        setPlans((prevPlans) => prevPlans.map((plan) => (plan.id === editingPlan.id ? { ...plan, ...planData } : plan)))
-
-        toast({
-          title: "Plano atualizado",
-          description: "O plano foi atualizado com sucesso.",
-        })
-      } else {
-        const newPlanId = await createSubscriptionPlan(planData)
-
-        // Adicionar o novo plano à lista
-        setPlans((prevPlans) => [...prevPlans, { id: newPlanId, ...planData } as SubscriptionPlan])
-
-        toast({
-          title: "Plano criado",
-          description: "O novo plano foi criado com sucesso.",
-        })
-      }
-
-      setIsDialogOpen(false)
-    } catch (error) {
-      console.error("Erro ao salvar plano:", error)
-      toast({
-        variant: "destructive",
-        title: "Erro ao salvar plano",
-        description: "Não foi possível salvar as alterações do plano.",
-      })
-    }
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value)
+  const togglePlanStatus = (planId: string) => {
+    setActivePlans(activePlans.map((plan) => (plan.id === planId ? { ...plan, active: !plan.active } : plan)))
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Gerenciamento de Planos</h2>
-          <p className="text-muted-foreground">Gerencie os planos de assinatura disponíveis na plataforma.</p>
-        </div>
-        <Button onClick={handleAddNewPlan}>
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Gerenciamento de Planos</h2>
+        <p className="text-muted-foreground">Visualize e gerencie os planos de assinatura disponíveis.</p>
+      </div>
+
+      <div className="flex justify-end">
+        <Button>
           <Plus className="mr-2 h-4 w-4" />
           Novo Plano
         </Button>
       </div>
 
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        {activePlans.map((plan) => (
+          <Card key={plan.id} className={plan.active ? "" : "opacity-70"}>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>{plan.name}</CardTitle>
+                <Badge variant={plan.name === "Pro" ? "default" : "outline"}>
+                  {plan.name === "Pro" ? "Popular" : plan.name === "Free" ? "Grátis" : "Básico"}
+                </Badge>
+              </div>
+              <CardDescription>{plan.description}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="mb-4">
+                <span className="text-3xl font-bold">{plan.price}</span>
+                <span className="text-muted-foreground">/{plan.interval}</span>
+              </div>
+              <ul className="space-y-2">
+                {plan.features.map((feature, index) => (
+                  <li key={index} className="flex items-center">
+                    {feature.included ? (
+                      <Check className="mr-2 h-4 w-4 text-green-500" />
+                    ) : (
+                      <div className="mr-2 h-4 w-4" />
+                    )}
+                    <span className={feature.included ? "" : "text-muted-foreground line-through"}>{feature.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter className="flex justify-between">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id={`plan-status-${plan.id}`}
+                  checked={plan.active}
+                  onCheckedChange={() => togglePlanStatus(plan.id)}
+                />
+                <Label htmlFor={`plan-status-${plan.id}`}>{plan.active ? "Ativo" : "Inativo"}</Label>
+              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">Abrir menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>Editar plano</DropdownMenuItem>
+                  <DropdownMenuItem>Ver assinantes</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-red-600">
+                    {plan.active ? "Desativar plano" : "Ativar plano"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle>Planos de Assinatura</CardTitle>
-          <CardDescription>Lista de todos os planos disponíveis na plataforma.</CardDescription>
+          <CardTitle>Detalhes dos Planos</CardTitle>
+          <CardDescription>Visão geral de todos os planos e suas configurações.</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex h-64 items-center justify-center">
-              <LoadingSpinner />
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Descrição</TableHead>
-                    <TableHead>Preço</TableHead>
-                    <TableHead>Limite de Clientes</TableHead>
-                    <TableHead>Limite de Serviços</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {plans.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
-                        Nenhum plano encontrado.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    plans.map((plan) => (
-                      <TableRow key={plan.id}>
-                        <TableCell className="font-medium">{plan.name}</TableCell>
-                        <TableCell>{plan.description}</TableCell>
-                        <TableCell>{formatCurrency(plan.price)}</TableCell>
-                        <TableCell>{plan.limits.clients === 0 ? "Ilimitado" : plan.limits.clients}</TableCell>
-                        <TableCell>{plan.limits.services === 0 ? "Ilimitado" : plan.limits.services}</TableCell>
-                        <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                                <span className="sr-only">Abrir menu</span>
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                              <DropdownMenuItem onClick={() => handleEditPlan(plan)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                Editar plano
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Preço</TableHead>
+                <TableHead>Intervalo</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Assinantes</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {activePlans.map((plan) => (
+                <TableRow key={plan.id}>
+                  <TableCell className="font-medium">{plan.name}</TableCell>
+                  <TableCell>{plan.price}</TableCell>
+                  <TableCell>{plan.interval}</TableCell>
+                  <TableCell>
+                    <Badge variant={plan.active ? "default" : "outline"}>{plan.active ? "Ativo" : "Inativo"}</Badge>
+                  </TableCell>
+                  <TableCell>{plan.name === "Free" ? "124" : plan.name === "Basic" ? "56" : "78"}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                          <span className="sr-only">Abrir menu</span>
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem>Editar plano</DropdownMenuItem>
+                        <DropdownMenuItem>Ver assinantes</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-red-600">
+                          {plan.active ? "Desativar plano" : "Ativar plano"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>{editingPlan ? "Editar Plano" : "Novo Plano"}</DialogTitle>
-            <DialogDescription>
-              {editingPlan
-                ? "Edite os detalhes do plano de assinatura."
-                : "Adicione um novo plano de assinatura à plataforma."}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Nome
-                </Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="description" className="text-right">
-                  Descrição
-                </Label>
-                <Input
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="price" className="text-right">
-                  Preço (R$)
-                </Label>
-                <Input
-                  id="price"
-                  name="price"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={formData.price}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="features" className="text-right">
-                  Recursos
-                </Label>
-                <Input
-                  id="features"
-                  name="features"
-                  value={formData.features}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  placeholder="Um recurso por linha"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="clientsLimit" className="text-right">
-                  Limite de Clientes
-                </Label>
-                <Input
-                  id="clientsLimit"
-                  name="clientsLimit"
-                  type="number"
-                  min="0"
-                  value={formData.clientsLimit}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  placeholder="0 para ilimitado"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="servicesLimit" className="text-right">
-                  Limite de Serviços
-                </Label>
-                <Input
-                  id="servicesLimit"
-                  name="servicesLimit"
-                  type="number"
-                  min="0"
-                  value={formData.servicesLimit}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  placeholder="0 para ilimitado"
-                  required
-                />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="appointmentsLimit" className="text-right">
-                  Limite de Agendamentos
-                </Label>
-                <Input
-                  id="appointmentsLimit"
-                  name="appointmentsLimit"
-                  type="number"
-                  min="0"
-                  value={formData.appointmentsLimit}
-                  onChange={handleInputChange}
-                  className="col-span-3"
-                  placeholder="0 para ilimitado"
-                  required
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">{editingPlan ? "Salvar alterações" : "Criar plano"}</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

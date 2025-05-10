@@ -1,5 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  reactStrictMode: true,
+  experimental: {
+    // Desativar a pré-renderização estática para as páginas do dashboard e admin
+    // Isso evita erros de hooks sendo chamados fora do contexto do cliente
+    unstable_noStore: true,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -9,14 +15,6 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  reactStrictMode: true,
-  experimental: {
-    // Desativa a pré-renderização estática para as páginas do dashboard
-    // Isso evita que o Next.js tente renderizar páginas que dependem de dados do cliente no servidor
-    appDir: true,
-  },
-  // Configuração para desativar a pré-renderização estática para as páginas do dashboard
-  unstable_runtimeJS: true,
 }
 
 export default nextConfig

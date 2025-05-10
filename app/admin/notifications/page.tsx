@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Bell, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,13 +10,29 @@ import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useToast } from "@/components/ui/use-toast"
+import { LoadingSpinner } from "@/components/loading-spinner"
 
 export default function AdminNotificationsPage() {
+  const [isMounted, setIsMounted] = useState(false)
   const [notificationType, setNotificationType] = useState<"all" | "trial" | "expiring" | "custom">("all")
   const [notificationTitle, setNotificationTitle] = useState("")
   const [notificationMessage, setNotificationMessage] = useState("")
   const [isSending, setIsSending] = useState(false)
   const { toast } = useToast()
+
+  // Garantir que estamos no cliente
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Não renderizar nada durante o SSR para evitar problemas de hidratação
+  if (!isMounted) {
+    return (
+      <div className="flex h-[50vh] w-full items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
 
   const handleSendNotification = async () => {
     if (!notificationTitle.trim() || !notificationMessage.trim()) {
