@@ -2,17 +2,21 @@
 
 import type React from "react"
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { useRouter, usePathname } from "next/navigation"
+import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { useAuth } from "@/lib/auth"
+import { LoadingSpinner } from "@/components/loading-spinner"
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const pathname = usePathname()
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -20,11 +24,20 @@ export default function DashboardLayout({
     }
   }, [user, loading, router])
 
+  // Não renderiza nada durante o SSR para evitar problemas de hidratação
+  if (!isMounted) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
+  }
+
   // Mostra um indicador de carregamento enquanto verifica a autenticação
   if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+        <LoadingSpinner size="lg" />
       </div>
     )
   }
@@ -34,6 +47,14 @@ export default function DashboardLayout({
     return null
   }
 
-  // Não envolvemos com DashboardShell aqui, apenas retornamos os filhos
-  return <>{children}</>
+  // Verifica se estamos na página de configuração inicial do perfil
+  const isProfileSetup = pathname === "/dashboard/profile/setup"
+
+  // Se for a página de configuração inicial, não envolve com DashboardShell
+  if (isProfileSetup) {
+    return children
+  }
+
+  // Para todas as outras páginas do dashboard, envolve com DashboardShell
+  return <DashboardShell>{children}</DashboardShell>
 }

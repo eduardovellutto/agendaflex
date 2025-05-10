@@ -15,6 +15,7 @@ import { TimeRangePicker } from "@/components/availability/time-range-picker"
 import { useAuth } from "@/lib/auth"
 import { getAvailabilityByProfessional, updateAvailability } from "@/lib/services/availability-service"
 import type { Availability } from "@/lib/types/availability"
+import { LoadingSpinner } from "@/components/loading-spinner"
 
 const weekdays = [
   { id: "monday", label: "Segunda-feira" },
@@ -49,9 +50,11 @@ const availabilityFormSchema = z.object({
 })
 
 export default function AvailabilityPage() {
+  const [isMounted, setIsMounted] = useState(false)
   const { toast } = useToast()
   const { user } = useAuth()
   const [isLoading, setIsLoading] = useState(true)
+  const [availabilityData, setAvailabilityData] = useState<z.infer<typeof availabilityFormSchema> | null>(null)
 
   const form = useForm<z.infer<typeof availabilityFormSchema>>({
     resolver: zodResolver(availabilityFormSchema),
@@ -69,13 +72,17 @@ export default function AvailabilityPage() {
   })
 
   useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
     async function loadAvailability() {
       if (user?.uid) {
         setIsLoading(true)
         try {
           const availability = await getAvailabilityByProfessional(user.uid)
           if (availability) {
-            form.reset({
+            setAvailabilityData({
               ...availability,
               appointmentDuration: availability.appointmentDuration.toString(),
               breakBetweenAppointments: availability.breakBetweenAppointments.toString(),
@@ -89,8 +96,16 @@ export default function AvailabilityPage() {
       }
     }
 
-    loadAvailability()
-  }, [user, form])
+    if (isMounted && user) {
+      loadAvailability()
+    }
+  }, [user, isMounted])
+
+  useEffect(() => {
+    if (availabilityData) {
+      form.reset(availabilityData)
+    }
+  }, [availabilityData, form])
 
   async function onSubmit(values: z.infer<typeof availabilityFormSchema>) {
     if (!user?.uid) return
@@ -119,6 +134,15 @@ export default function AvailabilityPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Se não estiver montado (lado do servidor), retorne um placeholder ou null
+  if (!isMounted) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    )
   }
 
   return (
