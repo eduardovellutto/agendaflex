@@ -1,112 +1,119 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { AlertCircle, CheckCircle, Clock } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { AlertCircle, CheckCircle2, Clock, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Progress } from "@/components/ui/progress"
 import { useSubscription } from "@/hooks/use-subscription"
+import { cn } from "@/lib/utils"
 
 export function SubscriptionBanner() {
-  const { subscription, isLoading, isTrialExpired, daysLeftInSubscription } = useSubscription()
+  const { subscription, isLoading } = useSubscription()
+  const router = useRouter()
   const [dismissed, setDismissed] = useState(false)
+  const [animate, setAnimate] = useState(false)
 
-  // Verificar se o banner já foi dispensado hoje
   useEffect(() => {
-    const dismissedDate = localStorage.getItem("subscription_banner_dismissed")
-    if (dismissedDate) {
-      const today = new Date().toDateString()
-      if (dismissedDate === today) {
-        setDismissed(true)
-      }
-    }
+    // Adicionar animação após o componente ser montado
+    const timer = setTimeout(() => setAnimate(true), 100)
+    return () => clearTimeout(timer)
   }, [])
 
-  const handleDismiss = () => {
-    setDismissed(true)
-    localStorage.setItem("subscription_banner_dismissed", new Date().toDateString())
-  }
-
-  if (isLoading || dismissed || !subscription) {
+  if (isLoading || !subscription || dismissed) {
     return null
   }
 
-  // Banner para trial expirado
-  if (isTrialExpired()) {
-    return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Seu período de teste expirou</AlertTitle>
-        <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          <span>Escolha um plano para continuar utilizando o AgendaFlex.</span>
-          <Button variant="outline" size="sm" asChild className="whitespace-nowrap">
-            <Link href="/dashboard/subscription/plans">Ver planos</Link>
-          </Button>
-        </AlertDescription>
-      </Alert>
-    )
+  // Se a assinatura estiver ativa e não for trial, não mostra o banner
+  if (subscription.status === "active" && subscription.planType !== "trial") {
+    return null
   }
 
-  // Banner para trial ativo
-  if (subscription.status === "trial") {
-    const daysLeft = daysLeftInSubscription()
-    const progressValue = ((15 - daysLeft) / 15) * 100
-
-    return (
-      <Alert className="mb-4 border-primary/50 bg-primary/5">
-        <Clock className="h-4 w-4 text-primary" />
-        <AlertTitle>Período de teste</AlertTitle>
-        <AlertDescription className="mt-2 space-y-2">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-            <span>
-              Você tem <strong>{daysLeft} dias</strong> restantes no seu período de teste.
-            </span>
-            <Button size="sm" asChild className="whitespace-nowrap">
-              <Link href="/dashboard/subscription/plans">Assinar agora</Link>
-            </Button>
-          </div>
-          <div className="w-full">
-            <Progress value={progressValue} className="h-2" />
-          </div>
-        </AlertDescription>
-      </Alert>
-    )
+  const handleUpgrade = () => {
+    router.push("/dashboard/subscription/plans")
   }
 
-  // Banner para assinatura prestes a expirar (menos de 5 dias)
-  const daysLeft = daysLeftInSubscription()
-  if (daysLeft <= 5) {
-    return (
-      <Alert className="mb-4 border-amber-500/50 bg-amber-500/5">
-        <AlertCircle className="h-4 w-4 text-amber-500" />
-        <AlertTitle>Sua assinatura está prestes a expirar</AlertTitle>
-        <AlertDescription className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          <span>
-            Sua assinatura expira em <strong>{daysLeft} dias</strong>. Renove para continuar utilizando o AgendaFlex.
-          </span>
-          <Button variant="outline" size="sm" asChild className="whitespace-nowrap">
-            <Link href="/dashboard/subscription/renew">Renovar assinatura</Link>
-          </Button>
-        </AlertDescription>
-      </Alert>
-    )
+  const handleDismiss = () => {
+    setAnimate(false)
+    setTimeout(() => setDismissed(true), 300)
   }
 
-  // Banner para assinatura ativa (mostrar apenas na primeira visita do dia)
+  const daysLeft = subscription.endDate
+    ? Math.max(0, Math.ceil((subscription.endDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+    : 0
+
+  const getBannerContent = () => {
+    if (subscription.status === "trial") {
+      return {
+        icon: <Clock className="h-5 w-5 text-blue-500" />,
+        title: `Período de teste: ${daysLeft} ${daysLeft === 1 ? "dia" : "dias"} restantes`,
+        description: "Aproveite todos os recursos durante o período de avaliação.",
+        buttonText: "Assinar agora",
+        color: "bg-blue-50 border-blue-200 dark:bg-blue-950/30 dark:border-blue-900",
+        textColor: "text-blue-800 dark:text-blue-300",
+      }
+    } else if (subscription.status === "expired") {
+      return {
+        icon: <AlertCircle className="h-5 w-5 text-red-500" />,
+        title: "Sua assinatura expirou",
+        description: "Renove sua assinatura para continuar utilizando todos os recursos.",
+        buttonText: "Renovar assinatura",
+        color: "bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-900",
+        textColor: "text-red-800 dark:text-red-300",
+      }
+    } else if (daysLeft <= 3) {
+      return {
+        icon: <AlertCircle className="h-5 w-5 text-amber-500" />,
+        title: `Sua assinatura expira em ${daysLeft} ${daysLeft === 1 ? "dia" : "dias"}`,
+        description: "Renove sua assinatura para evitar a interrupção do serviço.",
+        buttonText: "Renovar agora",
+        color: "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900",
+        textColor: "text-amber-800 dark:text-amber-300",
+      }
+    } else {
+      return {
+        icon: <CheckCircle2 className="h-5 w-5 text-green-500" />,
+        title: `Assinatura ativa: ${subscription.planName}`,
+        description: `Válida até ${subscription.endDate?.toLocaleDateString()}`,
+        buttonText: "Gerenciar assinatura",
+        color: "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-900",
+        textColor: "text-green-800 dark:text-green-300",
+      }
+    }
+  }
+
+  const content = getBannerContent()
+
   return (
-    <Alert className="mb-4 border-green-500/50 bg-green-500/5">
-      <CheckCircle className="h-4 w-4 text-green-500" />
-      <AlertTitle>Assinatura ativa</AlertTitle>
-      <AlertDescription className="flex justify-between items-center">
-        <span>
-          Plano <strong>{subscription.planType === "essential" ? "Essencial" : "Profissional"}</strong> ativo até{" "}
-          {subscription.endDate.toLocaleDateString()}
-        </span>
-        <Button variant="ghost" size="sm" onClick={handleDismiss}>
-          Dispensar
-        </Button>
-      </AlertDescription>
-    </Alert>
+    <div
+      className={cn(
+        "relative mb-6 overflow-hidden rounded-lg border px-4 py-3 shadow-sm transition-all duration-300 ease-in-out",
+        content.color,
+        animate ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4",
+      )}
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          {content.icon}
+          <div>
+            <h3 className={cn("font-medium", content.textColor)}>{content.title}</h3>
+            <p className="text-sm text-muted-foreground">{content.description}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={handleUpgrade} className="whitespace-nowrap">
+            {content.buttonText}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full"
+            onClick={handleDismiss}
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
   )
 }

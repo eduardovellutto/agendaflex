@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useAuth } from "@/lib/auth"
-import { getUserSubscription, isFeatureAvailable, checkSubscriptionLimits } from "@/lib/services/subscription-service"
+import { getUserSubscription, isFeatureAvailable } from "@/lib/services/subscription-service"
 import type { UserSubscription } from "@/lib/types/subscription"
 
 export function useSubscription() {
@@ -33,39 +33,18 @@ export function useSubscription() {
 
   const checkFeature = async (featureKey: string): Promise<boolean> => {
     if (!user) return false
-    return isFeatureAvailable(user.uid, featureKey)
-  }
 
-  const checkLimits = async (resourceType: "clients" | "services" | "appointments", currentCount: number) => {
-    if (!user) return { withinLimits: false, limit: 0 }
-    return checkSubscriptionLimits(user.uid, resourceType, currentCount)
-  }
-
-  const isTrialExpired = (): boolean => {
-    if (!subscription || subscription.status !== "trial") return false
-
-    const now = new Date()
-    return subscription.trialEndsAt ? subscription.trialEndsAt < now : false
-  }
-
-  const daysLeftInSubscription = (): number => {
-    if (!subscription) return 0
-
-    const now = new Date()
-    const endDate = subscription.endDate
-
-    const diffTime = endDate.getTime() - now.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    return Math.max(0, diffDays)
+    try {
+      return await isFeatureAvailable(user.uid, featureKey)
+    } catch (error) {
+      console.error(`Erro ao verificar disponibilidade da feature ${featureKey}:`, error)
+      return false
+    }
   }
 
   return {
     subscription,
     isLoading,
     checkFeature,
-    checkLimits,
-    isTrialExpired,
-    daysLeftInSubscription,
   }
 }

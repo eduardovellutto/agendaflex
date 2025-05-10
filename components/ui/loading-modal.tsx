@@ -1,7 +1,8 @@
 "use client"
 
-import { CalendarClock } from "lucide-react"
+import { useEffect, useState } from "react"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { LoadingSpinner } from "@/components/loading-spinner"
 
 interface LoadingModalProps {
   isOpen: boolean
@@ -9,16 +10,29 @@ interface LoadingModalProps {
 }
 
 export function LoadingModal({ isOpen, message = "Carregando..." }: LoadingModalProps) {
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    // Pequeno atraso para evitar flashes em carregamentos rápidos
+    let timer: NodeJS.Timeout
+
+    if (isOpen) {
+      timer = setTimeout(() => setOpen(true), 300)
+    } else {
+      setOpen(false)
+    }
+
+    return () => clearTimeout(timer)
+  }, [isOpen])
+
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-md flex flex-col items-center justify-center p-6">
-        <div className="flex flex-col items-center justify-center gap-4">
-          <div className="relative">
-            <CalendarClock className="h-12 w-12 text-primary animate-pulse" />
-            <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
-          </div>
-          <p className="text-center text-lg font-medium">{message}</p>
-        </div>
+    <Dialog open={open} onOpenChange={setOpen} modal>
+      <DialogContent
+        className="sm:max-w-md flex flex-col items-center justify-center p-10 gap-4 border-none shadow-lg"
+        hideClose
+      >
+        <LoadingSpinner size="lg" />
+        <p className="text-center text-muted-foreground animate-pulse">{message}</p>
       </DialogContent>
     </Dialog>
   )

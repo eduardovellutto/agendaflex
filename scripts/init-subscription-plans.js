@@ -1,34 +1,33 @@
-// Este script deve ser executado uma vez para inicializar os planos de assinatura no Firestore
-// Pode ser executado via Firebase Functions ou manualmente
+// Este script deve ser executado para inicializar os planos de assinatura no Firestore
+// Pode ser executado com: node scripts/init-subscription-plans.js
 
-const admin = require("firebase-admin")
-const serviceAccount = require("./serviceAccountKey.json")
+const { initializeApp } = require("firebase/app")
+const { getFirestore, collection, addDoc, getDocs, query, where } = require("firebase/firestore")
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-})
+// Configuração do Firebase
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+}
 
-const db = admin.firestore()
+// Inicializar o Firebase
+const app = initializeApp(firebaseConfig)
+const db = getFirestore(app)
 
-async function initSubscriptionPlans() {
-  const plansCollection = db.collection("subscription_plans")
-
-  // Verificar se já existem planos
-  const existingPlans = await plansCollection.get()
-  if (!existingPlans.empty) {
-    console.log("Planos já existem. Pulando inicialização.")
-    return
-  }
-
-  // Plano Trial
-  await plansCollection.add({
+// Planos de assinatura
+const subscriptionPlans = [
+  {
     name: "Trial",
     description: "Experimente gratuitamente por 15 dias",
     price: 0,
     features: [
-      "Gerenciamento básico de agendamentos",
-      "Gerenciamento de clientes",
-      "Gerenciamento de serviços",
+      "Até 5 clientes",
+      "Até 3 serviços",
+      "Até 10 agendamentos",
       "Gerenciamento de disponibilidade",
       "Relatórios básicos",
     ],
@@ -37,63 +36,79 @@ async function initSubscriptionPlans() {
       services: 3,
       appointments: 10,
     },
-    type: "trial",
-  })
-
-  // Plano Essencial
-  await plansCollection.add({
+  },
+  {
     name: "Essencial",
     description: "Para profissionais iniciantes",
     price: 49.9,
     features: [
-      "Gerenciamento básico de agendamentos",
-      "Gerenciamento de clientes",
-      "Gerenciamento de serviços",
-      "Gerenciamento de disponibilidade",
-      "Relatórios básicos",
+      "Até 50 clientes",
+      "Até 10 serviços",
+      "Agendamentos ilimitados",
       "Notificações por email",
+      "Relatórios básicos",
     ],
     limits: {
       clients: 50,
       services: 10,
-      appointments: 9999, // Ilimitado
+      appointments: 0, // 0 significa ilimitado
     },
-    type: "essential",
-  })
-
-  // Plano Profissional
-  await plansCollection.add({
+  },
+  {
     name: "Profissional",
     description: "Para profissionais estabelecidos",
     price: 99.9,
     features: [
-      "Gerenciamento avançado de agendamentos",
       "Clientes ilimitados",
       "Serviços ilimitados",
-      "Gerenciamento de disponibilidade",
-      "Relatórios avançados",
+      "Agendamentos ilimitados",
       "Notificações por email, SMS e WhatsApp",
+      "Relatórios avançados",
       "Pagamentos online",
       "Personalização de marca",
-      "Acesso à API",
     ],
     limits: {
-      clients: 9999, // Ilimitado
-      services: 9999, // Ilimitado
-      appointments: 9999, // Ilimitado
+      clients: 0, // 0 significa ilimitado
+      services: 0, // 0 significa ilimitado
+      appointments: 0, // 0 significa ilimitado
     },
-    type: "professional",
-  })
+  },
+]
 
-  console.log("Planos de assinatura inicializados com sucesso!")
+// Função para verificar se os planos já existem
+async function checkPlansExist() {
+  const plansRef = collection(db, "subscription_plans")
+  const q = query(plansRef, where("name", "==", "Trial"))
+  const snapshot = await getDocs(q)
+
+  return !snapshot.empty
 }
 
-initSubscriptionPlans()
-  .then(() => {
-    console.log("Script concluído com sucesso!")
-    process.exit(0)
-  })
-  .catch((error) => {
-    console.error("Erro ao executar script:", error)
-    process.exit(1)
-  })
+// Função para adicionar os planos ao Firestore
+async function addPlans() {
+  try {
+    const plansExist = await checkPlansExist()
+
+    if (plansExist) {
+      console.log("Os planos já existem no Firestore. Pulando a inicialização.")
+      return
+    }
+
+    const plansRef = collection(db, "subscription_plans")
+
+    for (const plan of subscriptionPlans) {
+      await addDoc(plansRef, {
+        ...plan,
+        createdAt: new Date(),
+      })
+      console.log(`Plano "${plan.name}" adicionado com sucesso.`)
+    }
+
+    console.log("Todos os planos foram adicionados com sucesso!")
+  } catch (error) {
+    console.error("Erro ao adicionar planos:", error)
+  }
+}
+
+// Executar a função
+addPlans()

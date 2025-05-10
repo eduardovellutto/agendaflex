@@ -1,95 +1,122 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { AlertCircle } from "lucide-react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { AlertTriangle, ArrowRight } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useAuth } from "@/lib/auth"
-import { checkSubscriptionLimits } from "@/lib/services/subscription-service"
+import { useSubscription } from "@/hooks/use-subscription"
+import { cn } from "@/lib/utils"
 
 interface UsageProgressProps {
   resourceType: "clients" | "services" | "appointments"
   currentCount: number
-  showAlert?: boolean
+  showButton?: boolean
+  className?: string
 }
 
-export function UsageProgress({ resourceType, currentCount, showAlert = true }: UsageProgressProps) {
-  const { user } = useAuth()
-  const [limit, setLimit] = useState(0)
-  const [withinLimits, setWithinLimits] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
+export function UsageProgress({ resourceType, currentCount, showButton = true, className }: UsageProgressProps) {
+  const { subscription, isLoading } = useSubscription()
+  const router = useRouter()
+  const [progress, setProgress] = useState(0)
+  const [animate, setAnimate] = useState(false)
 
   useEffect(() => {
-    async function checkLimits() {
-      if (!user) return
+    // Adicionar animação após o componente ser montado
+    const timer = setTimeout(() => setAnimate(true), 300)
+    return () => clearTimeout(timer)
+  }, [])
 
-      try {
-        const result = await checkSubscriptionLimits(user.uid, resourceType, currentCount)
-
-        setLimit(result.limit)
-        setWithinLimits(result.withinLimits)
-      } catch (error) {
-        console.error(`Erro ao verificar limites de ${resourceType}:`, error)
-      } finally {
-        setIsLoading(false)
-      }
+  useEffect(() => {
+    if (!isLoading && subscription) {
+      const limit = subscription.limits?.[resourceType] || 0
+      // Se o limite for 0, significa ilimitado
+      const calculatedProgress = limit === 0 ? 0 : Math.min(100, (currentCount / limit) * 100)
+      setProgress(calculatedProgress)
     }
+  }, [isLoading, subscription, currentCount, resourceType])
 
-    checkLimits()
-  }, [user, resourceType, currentCount])
-
-  if (isLoading) {
-    return null
+  if (isLoading || !subscription) {
+    return (
+      <div className="space-y-2">
+        <div className="h-4 w-full animate-pulse rounded bg-muted"></div>
+        <div className="flex justify-between">
+          <div className="h-4 w-20 animate-pulse rounded bg-muted"></div>
+          <div className="h-4 w-20 animate-pulse rounded bg-muted"></div>
+        </div>
+      </div>
+    )
   }
 
-  const percentage = limit > 0 ? (currentCount / limit) * 100 : 0
-  const isNearLimit = percentage >= 80 && percentage < 100
-  const isAtLimit = percentage >= 100
+  const limit = subscription.limits?.[resourceType] || 0
+  const isUnlimited = limit === 0
+  const isNearLimit = progress >= 80
+  const isAtLimit = progress >= 100
 
-  const resourceLabels = {
-    clients: "clientes",
-    services: "serviços",
-    appointments: "agendamentos",
+  const getResourceName = () => {
+    switch (resourceType) {
+      case "clients":
+        return "Clientes"
+      case "services":
+        return "Serviços"
+      case "appointments":
+        return "Agendamentos"
+      default:
+        return resourceType
+    }
+  }
+
+  const handleUpgrade = () => {
+    router.push("/dashboard/subscription/upgrade")
+  }
+
+  const getProgressColor = () => {
+    if (isUnlimited) return "bg-blue-500"
+    if (isAtLimit) return "bg-red-500"
+    if (isNearLimit) return "bg-amber-500"
+    return "bg-green-500"
   }
 
   return (
-    <div className="space-y-2">
-      <div className="flex justify-between text-sm">
-        <span>
-          {currentCount} de {limit} {resourceLabels[resourceType]}
-        </span>
-        <span className={isAtLimit ? "text-destructive" : isNearLimit ? "text-amber-500" : ""}>
-          {isAtLimit ? "Limite atingido" : isNearLimit ? "Próximo do limite" : `${Math.round(percentage)}%`}
-        </span>
+    <div className={cn("space-y-3", className)}>
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-medium">{getResourceName()}</h4>
+        {isNearLimit && !isUnlimited && (
+          <span className="flex items-center text-xs font-medium text-amber-600 dark:text-amber-400">
+            <AlertTriangle className="mr-1 h-3 w-3" />
+            {isAtLimit ? "Limite atingido" : "Próximo ao limite"}
+          </span>
+        )}
       </div>
+
       <Progress
-        value={percentage > 100 ? 100 : percentage}
-        className={`h-2 ${isAtLimit ? "bg-destructive/20" : isNearLimit ? "bg-amber-500/20" : ""}`}
-        indicatorClassName={isAtLimit ? "bg-destructive" : isNearLimit ? "bg-amber-500" : ""}
+        value={animate ? progress : 0}
+        className="h-2 transition-all duration-1000 ease-out"
+        indicatorClassName={cn("transition-all duration-1000 ease-out", getProgressColor())}
       />
 
-      {showAlert && isAtLimit && (
-        <Alert variant="destructive" className="mt-2">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Você atingiu o limite de {resourceLabels[resourceType]} do seu plano.
-            <a href="/dashboard/subscription/plans" className="ml-1 underline">
-              Faça upgrade para adicionar mais.
-            </a>
-          </AlertDescription>
-        </Alert>
-      )}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-muted-foreground">
+          {currentCount} {isUnlimited ? "" : `/ ${limit}`}
+        </p>
+        {isUnlimited ? (
+          <span className="text-xs font-medium text-blue-600 dark:text-blue-400">Ilimitado</span>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            {isAtLimit
+              ? "Limite atingido"
+              : isNearLimit
+                ? `${Math.round(limit - currentCount)} restantes`
+                : `${Math.round(((limit - currentCount) / limit) * 100)}% disponível`}
+          </p>
+        )}
+      </div>
 
-      {showAlert && isNearLimit && (
-        <Alert variant="warning" className="mt-2">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Você está próximo do limite de {resourceLabels[resourceType]} do seu plano.
-            <a href="/dashboard/subscription/plans" className="ml-1 underline">
-              Considere fazer upgrade.
-            </a>
-          </AlertDescription>
-        </Alert>
+      {showButton && (isAtLimit || isNearLimit) && !isUnlimited && (
+        <Button variant="outline" size="sm" className="mt-2 w-full text-xs" onClick={handleUpgrade}>
+          Fazer upgrade
+          <ArrowRight className="ml-1 h-3 w-3" />
+        </Button>
       )}
     </div>
   )

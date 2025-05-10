@@ -2,23 +2,20 @@
 
 import type React from "react"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import {
-  CalendarClock,
-  CalendarDays,
-  Clock,
+  BarChart3,
+  Users,
   CreditCard,
+  Settings,
+  Bell,
   Home,
   LogOut,
   Menu,
-  Settings,
-  Users,
-  Bell,
+  Package,
   Search,
   ChevronDown,
-  BarChart,
-  LogInIcon as Subscription,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -33,8 +30,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LoadingModal } from "@/components/ui/loading-modal"
-import { SubscriptionBanner } from "@/components/subscription/subscription-banner"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -50,60 +45,49 @@ interface NavItem {
 const navItems: NavItem[] = [
   {
     title: "Dashboard",
-    href: "/dashboard",
-    icon: Home,
+    href: "/admin",
+    icon: BarChart3,
   },
   {
-    title: "Agenda",
-    href: "/dashboard/calendar",
-    icon: CalendarDays,
-    badge: "Hoje",
-    badgeColor: "bg-blue-500",
-  },
-  {
-    title: "Clientes",
-    href: "/dashboard/clients",
+    title: "Usuários",
+    href: "/admin/users",
     icon: Users,
+    badge: "Novo",
+    badgeColor: "bg-green-500",
   },
   {
-    title: "Serviços",
-    href: "/dashboard/services",
-    icon: Clock,
-  },
-  {
-    title: "Disponibilidade",
-    href: "/dashboard/availability",
-    icon: CalendarClock,
-  },
-  {
-    title: "Pagamentos",
-    href: "/dashboard/payments",
+    title: "Assinaturas",
+    href: "/admin/subscriptions",
     icon: CreditCard,
   },
   {
-    title: "Assinatura",
-    href: "/dashboard/subscription/plans",
-    icon: Subscription,
+    title: "Planos",
+    href: "/admin/plans",
+    icon: Package,
+  },
+  {
+    title: "Notificações",
+    href: "/admin/notifications",
+    icon: Bell,
   },
   {
     title: "Configurações",
-    href: "/dashboard/settings",
+    href: "/admin/settings",
     icon: Settings,
   },
 ]
 
-interface DashboardShellProps extends React.HTMLAttributes<HTMLDivElement> {
+interface AdminShellProps {
   children: React.ReactNode
 }
 
-export function DashboardShell({ children, className, ...props }: DashboardShellProps) {
+export function AdminShell({ children }: AdminShellProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, signOut } = useAuth()
   const [isMounted, setIsMounted] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [notifications, setNotifications] = useState(3) // Exemplo de notificações
 
   useEffect(() => {
     setIsMounted(true)
@@ -114,7 +98,7 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
   }
 
   const getInitials = (name: string | null | undefined) => {
-    if (!name) return "U"
+    if (!name) return "A"
     return name
       .split(" ")
       .map((part) => part[0])
@@ -142,15 +126,11 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
     // Simular tempo de carregamento
     setTimeout(() => {
       setIsLoading(false)
-    }, 500)
+    }, 300)
   }
-
-  const isAdmin = user?.email === "admin@example.com" // Exemplo de verificação de admin
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50 dark:bg-gray-900">
-      <LoadingModal isOpen={isLoading} message="Carregando..." />
-
       <header className="sticky top-0 z-40 border-b bg-white dark:bg-gray-950 shadow-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2 md:gap-4">
@@ -166,11 +146,20 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
                   <div className="px-2 py-6">
                     <div className="flex items-center gap-2 px-4 py-2 mb-6">
                       <div className="bg-primary/10 p-2 rounded-full">
-                        <CalendarClock className="h-6 w-6 text-primary" />
+                        <BarChart3 className="h-6 w-6 text-primary" />
                       </div>
-                      <span className="text-lg font-bold">AgendaFlex</span>
+                      <span className="text-lg font-bold">Admin Panel</span>
                     </div>
                     <nav className="mt-2 flex flex-col gap-1 px-2">
+                      <Button
+                        variant="outline"
+                        className="flex w-full items-center justify-start gap-2 mb-2"
+                        onClick={() => handleNavigation("/dashboard")}
+                      >
+                        <Home className="h-5 w-5" />
+                        Voltar ao Dashboard
+                      </Button>
+                      <div className="my-2 h-px bg-border" />
                       {navItems.map((item) => (
                         <button
                           key={item.href}
@@ -205,11 +194,11 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
                 </div>
               </SheetContent>
             </Sheet>
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleNavigation("/dashboard")}>
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => handleNavigation("/admin")}>
               <div className="bg-primary/10 p-1.5 rounded-md hidden md:flex">
-                <CalendarClock className="h-5 w-5 text-primary" />
+                <BarChart3 className="h-5 w-5 text-primary" />
               </div>
-              <span className="text-lg font-bold hidden md:inline-block">AgendaFlex</span>
+              <span className="text-lg font-bold hidden md:inline-block">Admin Panel</span>
             </div>
           </div>
 
@@ -218,7 +207,7 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Buscar..."
+                placeholder="Buscar usuários, assinaturas..."
                 className="w-full pl-8 bg-muted/30 border-none focus-visible:ring-1"
               />
             </div>
@@ -228,68 +217,45 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="relative" onClick={() => console.log("Notificações")}>
-                    <Bell className="h-5 w-5" />
-                    {notifications > 0 && (
-                      <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
-                        {notifications}
-                      </span>
-                    )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleNavigation("/dashboard")}
+                    className="hidden md:flex"
+                  >
+                    <Home className="mr-2 h-4 w-4" />
+                    Dashboard
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Notificações</TooltipContent>
+                <TooltipContent>Voltar ao Dashboard</TooltipContent>
               </Tooltip>
             </TooltipProvider>
-
-            {isAdmin && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="hidden md:flex"
-                      onClick={() => handleNavigation("/admin")}
-                    >
-                      <BarChart className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Painel Admin</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="sm" className="gap-2 pl-2 pr-3">
                   <Avatar className="h-7 w-7">
-                    <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "Usuário"} />
-                    <AvatarFallback className="text-xs">{getInitials(user?.displayName || user?.email)}</AvatarFallback>
+                    <AvatarImage src={user?.photoURL || ""} alt={user?.displayName || "Admin"} />
+                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                      {getInitials(user?.displayName || user?.email)}
+                    </AvatarFallback>
                   </Avatar>
-                  <span className="hidden md:inline-block text-sm font-medium">
-                    {user?.displayName?.split(" ")[0] || "Usuário"}
-                  </span>
+                  <span className="hidden md:inline-block text-sm font-medium">Admin</span>
                   <ChevronDown className="h-4 w-4 text-muted-foreground" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
+                <DropdownMenuLabel>Administrador</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleNavigation("/dashboard/profile")}>Perfil</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleNavigation("/dashboard/settings")}>
-                  Configurações
+                <DropdownMenuItem onClick={() => handleNavigation("/dashboard")}>
+                  <Home className="mr-2 h-4 w-4" />
+                  Voltar ao Dashboard
                 </DropdownMenuItem>
-                {isAdmin && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => handleNavigation("/admin")}>
-                      <BarChart className="mr-2 h-4 w-4" />
-                      Painel Admin
-                    </DropdownMenuItem>
-                  </>
-                )}
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleSignOut}>Sair</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -327,27 +293,20 @@ export function DashboardShell({ children, className, ...props }: DashboardShell
             </div>
             <div className="border-t p-4">
               <div className="rounded-lg bg-muted p-4">
-                <h4 className="mb-2 text-sm font-medium">Precisa de ajuda?</h4>
+                <h4 className="mb-2 text-sm font-medium">Modo Administrador</h4>
                 <p className="mb-3 text-xs text-muted-foreground">
-                  Acesse nossa central de suporte para tirar suas dúvidas.
+                  Você está no painel de administração com acesso a todas as funcionalidades.
                 </p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => window.open("https://suporte.agendaflex.com", "_blank")}
-                >
-                  Central de Suporte
+                <Button variant="outline" size="sm" className="w-full" onClick={() => handleNavigation("/dashboard")}>
+                  <Home className="mr-2 h-4 w-4" />
+                  Voltar ao Dashboard
                 </Button>
               </div>
             </div>
           </div>
         </aside>
         <main className="flex-1 overflow-auto p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900">
-          <div className="mx-auto max-w-5xl">
-            <SubscriptionBanner />
-            {children}
-          </div>
+          <div className="mx-auto max-w-6xl">{children}</div>
         </main>
       </div>
     </div>

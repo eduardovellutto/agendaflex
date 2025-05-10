@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import { CalendarClock, Clock, Users } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { DashboardShell } from "@/components/dashboard/dashboard-shell"
 import { AppointmentList } from "@/components/appointments/appointment-list"
 import { useAuth } from "@/lib/auth"
 import { getAppointmentsByDate, getAppointmentStats, getUpcomingAppointments } from "@/lib/services/appointment-service"
@@ -83,35 +82,35 @@ export default function DashboardPage() {
   }
 
   return (
-    <DashboardShell>
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+        <Card className="border-l-4 border-l-primary">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Agendamentos</CardTitle>
-            <CalendarClock className="h-4 w-4 text-muted-foreground" />
+            <CalendarClock className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
             <p className="text-xs text-muted-foreground">Agendamentos registrados</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-green-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Agendamentos Concluídos</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <Clock className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.completed}</div>
             <p className="text-xs text-muted-foreground">Atendimentos realizados</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="border-l-4 border-l-blue-500">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Próximos Agendamentos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.upcoming}</div>
@@ -121,29 +120,33 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-muted/50 pb-2">
             <CardTitle className="text-sm font-medium">Uso de Clientes</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <UsageProgress resourceType="clients" currentCount={clientCount} />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
+        <Card className="overflow-hidden">
+          <CardHeader className="bg-muted/50 pb-2">
             <CardTitle className="text-sm font-medium">Uso de Serviços</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <UsageProgress resourceType="services" currentCount={serviceCount} />
           </CardContent>
         </Card>
       </div>
 
       <Tabs defaultValue="today" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="today">Hoje</TabsTrigger>
-          <TabsTrigger value="upcoming">Próximos</TabsTrigger>
+        <TabsList className="w-full justify-start">
+          <TabsTrigger value="today" className="flex-1 md:flex-none">
+            Hoje
+          </TabsTrigger>
+          <TabsTrigger value="upcoming" className="flex-1 md:flex-none">
+            Próximos
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="today" className="space-y-4">
           <div className="grid gap-4">
@@ -156,6 +159,6 @@ export default function DashboardPage() {
           </div>
         </TabsContent>
       </Tabs>
-    </DashboardShell>
+    </div>
   )
 }

@@ -1,96 +1,183 @@
-import Link from "next/link"
-import { Edit, MoreHorizontal, User, CalendarClock } from "lucide-react"
+"use client"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Archive, Edit, MoreHorizontal, Phone, Trash, UserRound } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Skeleton } from "@/components/ui/skeleton"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { LoadingSpinner } from "@/components/loading-spinner"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Card } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 import type { Client } from "@/lib/types/client"
 
 interface ClientListProps {
   clients: Client[]
-  isLoading?: boolean
+  isLoading: boolean
 }
 
-export function ClientList({ clients, isLoading = false }: ClientListProps) {
+export function ClientList({ clients, isLoading }: ClientListProps) {
+  const router = useRouter()
+  const [expandedClient, setExpandedClient] = useState<string | null>(null)
+
+  const handleViewClient = (clientId: string) => {
+    router.push(`/dashboard/clients/${clientId}`)
+  }
+
+  const handleEditClient = (clientId: string) => {
+    router.push(`/dashboard/clients/${clientId}/edit`)
+  }
+
+  const toggleExpandClient = (clientId: string) => {
+    setExpandedClient(expandedClient === clientId ? null : clientId)
+  }
+
   if (isLoading) {
     return (
-      <div className="space-y-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i}>
-            <CardContent className="p-4">
-              <div className="flex items-start gap-4">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-1/3" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-                <Skeleton className="h-8 w-8 rounded-md" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="flex h-64 items-center justify-center">
+        <LoadingSpinner />
       </div>
     )
   }
 
   if (clients.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <User className="h-12 w-12 text-muted-foreground" />
-        <h3 className="mt-4 text-lg font-semibold">Nenhum cliente</h3>
-        <p className="mt-2 text-sm text-muted-foreground">Você ainda não possui clientes cadastrados.</p>
-        <Button asChild className="mt-4">
-          <Link href="/dashboard/clients/new">Adicionar cliente</Link>
-        </Button>
+      <div className="flex h-64 flex-col items-center justify-center rounded-lg border border-dashed p-8 text-center">
+        <UserRound className="h-10 w-10 text-muted-foreground/50" />
+        <h3 className="mt-4 text-lg font-medium">Nenhum cliente encontrado</h3>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Comece adicionando um novo cliente para gerenciar seus agendamentos.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {clients.map((client) => (
-        <Card key={client.id}>
-          <CardContent className="p-4">
-            <div className="flex items-start gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                <User className="h-5 w-5 text-primary" />
+        <Card
+          key={client.id}
+          className={cn(
+            "overflow-hidden transition-all duration-200",
+            expandedClient === client.id ? "shadow-md" : "shadow-sm",
+          )}
+        >
+          <div
+            className="flex items-center justify-between p-4 cursor-pointer"
+            onClick={() => toggleExpandClient(client.id)}
+          >
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 border">
+                <AvatarFallback className="bg-primary/10 text-primary">
+                  {client.name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .substring(0, 2)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h3 className="font-medium">{client.name}</h3>
+                <p className="text-sm text-muted-foreground">{client.email}</p>
               </div>
-              <div className="flex-1">
-                <h4 className="font-medium">{client.name}</h4>
-                <div className="mt-1 flex flex-col gap-1 text-sm text-muted-foreground sm:flex-row sm:gap-2">
-                  <span>{client.email}</span>
-                  {client.phone && (
-                    <>
-                      <span className="hidden sm:inline-block">•</span>
-                      <span>{client.phone}</span>
-                    </>
-                  )}
-                </div>
-              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {client.isArchived && (
+                <Badge variant="outline" className="text-muted-foreground">
+                  Arquivado
+                </Badge>
+              )}
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-5 w-5" />
+                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
                     <span className="sr-only">Abrir menu</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/clients/${client.id}`} className="flex items-center">
-                      <Edit className="mr-2 h-4 w-4" />
-                      <span>Editar</span>
-                    </Link>
+                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => handleViewClient(client.id)}>
+                    <UserRound className="mr-2 h-4 w-4" />
+                    Ver detalhes
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={`/dashboard/clients/${client.id}/appointments`} className="flex items-center">
-                      <CalendarClock className="mr-2 h-4 w-4" />
-                      <span>Ver agendamentos</span>
-                    </Link>
+                  <DropdownMenuItem onClick={() => handleEditClient(client.id)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Editar
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <Archive className="mr-2 h-4 w-4" />
+                    {client.isArchived ? "Desarquivar" : "Arquivar"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-red-600">
+                    <Trash className="mr-2 h-4 w-4" />
+                    Excluir
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </CardContent>
+          </div>
+
+          {expandedClient === client.id && (
+            <div className="border-t bg-muted/30 p-4 space-y-3">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground">Telefone</h4>
+                  <p className="text-sm mt-1 flex items-center">
+                    <Phone className="mr-1 h-3 w-3 text-muted-foreground" />
+                    {client.phone || "Não informado"}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground">Último atendimento</h4>
+                  <p className="text-sm mt-1">
+                    {client.lastAppointment
+                      ? new Date(client.lastAppointment).toLocaleDateString()
+                      : "Nenhum atendimento"}
+                  </p>
+                </div>
+              </div>
+
+              {client.notes && (
+                <div>
+                  <h4 className="text-xs font-medium text-muted-foreground">Observações</h4>
+                  <p className="text-sm mt-1 text-muted-foreground">{client.notes}</p>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleEditClient(client.id)
+                  }}
+                >
+                  <Edit className="mr-2 h-3 w-3" />
+                  Editar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleViewClient(client.id)
+                  }}
+                >
+                  Ver detalhes
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       ))}
     </div>
